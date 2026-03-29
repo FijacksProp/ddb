@@ -5,9 +5,41 @@ from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def _split_csv(value: str):
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _normalize_host(value: str):
+    host = value.strip()
+    if not host:
+        return ""
+    if "://" in host:
+        host = urlparse(host).netloc or ""
+    if "/" in host:
+        host = host.split("/")[0]
+    if ":" in host:
+        host = host.split(":")[0]
+    return host.lower().strip()
+
+
+def _normalize_origin(value: str):
+    origin = value.strip()
+    if not origin:
+        return ""
+    if "://" not in origin:
+        return ""
+    parsed = urlparse(origin)
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+    return f"{parsed.scheme}://{parsed.netloc}"
+
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="django-insecure-change-me-in-production!!")
 DEBUG = config("DJANGO_DEBUG", cast=bool, default=True)
-ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="127.0.0.1,localhost").split(",")
+raw_allowed_hosts = _split_csv(config("DJANGO_ALLOWED_HOSTS", default="127.0.0.1,localhost"))
+ALLOWED_HOSTS = [_normalize_host(host) for host in raw_allowed_hosts if _normalize_host(host)]
+if not DEBUG and ".onrender.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".onrender.com")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -106,12 +138,18 @@ REST_FRAMEWORK = {
     ),
 }
 
-cors_allowed_origins = [origin.strip() for origin in config("DJANGO_CORS_ALLOWED_ORIGINS", default="").split(",") if origin.strip()]
-csrf_trusted_origins = [origin.strip() for origin in config("DJANGO_CSRF_TRUSTED_ORIGINS", default="").split(",") if origin.strip()]
+raw_cors_allowed_origins = _split_csv(config("DJANGO_CORS_ALLOWED_ORIGINS", default=""))
+cors_allowed_origins = [_normalize_origin(origin) for origin in raw_cors_allowed_origins if _normalize_origin(origin)]
+raw_csrf_trusted_origins = _split_csv(config("DJANGO_CSRF_TRUSTED_ORIGINS", default=""))
+csrf_trusted_origins = [_normalize_origin(origin) for origin in raw_csrf_trusted_origins if _normalize_origin(origin)]
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG and not cors_allowed_origins
 CORS_ALLOWED_ORIGINS = cors_allowed_origins
 CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
+if not DEBUG and not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.onrender\.com$"]
+if not DEBUG and not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG
