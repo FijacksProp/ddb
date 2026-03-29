@@ -19,13 +19,11 @@ services:
       - key: DJANGO_CORS_ALLOWED_ORIGINS
         value: https://ddb-frontend.onrender.com
       - key: DATABASE_URL
-        fromDatabase:
-          name: ddb-postgres
-          property: connectionString
+        sync: false
       - key: CELERY_BROKER_URL
-        value: redis://127.0.0.1:6379/0
+        value: memory://
       - key: CELERY_RESULT_BACKEND
-        value: redis://127.0.0.1:6379/0
+        value: cache+memory://
 
   - type: web
     name: ddb-frontend
@@ -39,7 +37,3 @@ services:
         value: 22.11.0
       - key: VITE_API_URL
         value: https://ddb-backend.onrender.com/api/v1
-
-databases:
-  - name: ddb-postgres
-    plan: starter

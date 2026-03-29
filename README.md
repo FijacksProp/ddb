@@ -62,29 +62,38 @@ This is not yet a production banking system. The remaining high-value work is:
 - add double-entry ledger controls beyond the current scaffold
 - implement reconciliation, limits, fraud checks, and audit enforcement
 
-## Deploy on Render
+## Deploy on Render with Supabase Postgres
 
-This repo is now prepared for Render with a blueprint file: `render.yaml`.
+This repo is configured for Render web services + Supabase managed Postgres.
 
-### What gets deployed
+### Services
 
-- `ddb-backend` (Django web service in `backend/`)
-- `ddb-frontend` (Node web service serving built React app)
-- `ddb-postgres` (managed Postgres database)
+- `ddb-backend` (Django service in `backend/`)
+- `ddb-frontend` (Node service serving built React app)
 
-### One-time setup
+### Supabase database setup
+
+1. Create a Supabase project.
+2. Go to `Project Settings > Database`.
+3. Copy your Postgres connection string.
+4. Prefer Supabase pooler connection string for production.
+5. Ensure the URL includes `sslmode=require`.
+
+### Render setup
 
 1. Push this repo to GitHub.
-2. In Render, choose **New + > Blueprint**.
-3. Select the GitHub repo and deploy.
-4. After first deploy, replace placeholder hostnames in Render env vars:
-   - `DJANGO_ALLOWED_HOSTS`
-   - `DJANGO_CSRF_TRUSTED_ORIGINS`
-   - `DJANGO_CORS_ALLOWED_ORIGINS`
-   - `VITE_API_URL`
+2. In Render, choose **New + > Blueprint** and select this repo.
+3. Open backend environment variables and set:
+   - `DATABASE_URL` = your Supabase Postgres URL
+   - `DJANGO_ALLOWED_HOSTS` = backend host only
+   - `DJANGO_CSRF_TRUSTED_ORIGINS` = frontend URL with `https://`
+   - `DJANGO_CORS_ALLOWED_ORIGINS` = frontend URL with `https://`
+4. Open frontend environment variables and set:
+   - `VITE_API_URL` = `https://<your-backend-host>/api/v1`
+5. Redeploy both services.
 
 ### Notes
 
-- Backend build runs migrations and `collectstatic` automatically via `backend/render-build.sh`.
-- Backend reads `DATABASE_URL` when provided (Render Postgres), otherwise falls back to local SQLite config.
-- For local development, continue using `.env` from `backend/.env.example`.
+- Backend build runs migrations and `collectstatic` via `backend/render-build.sh`.
+- In production, Django now requires `DATABASE_URL` and will fail fast if missing.
+- `DB_DISABLE_SERVER_SIDE_CURSORS=True` is set in `render.yaml` for safer Supabase pooler compatibility.

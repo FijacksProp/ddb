@@ -57,34 +57,24 @@ TEMPLATES = [
 WSGI_APPLICATION = "ddb_backend.wsgi.application"
 ASGI_APPLICATION = "ddb_backend.asgi.application"
 
-default_db = {
+DATABASES = {
     "default": {
-        "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
-        "NAME": config("DB_NAME", default=str(BASE_DIR / "db.sqlite3")),
-        "USER": config("DB_USER", default=""),
-        "PASSWORD": config("DB_PASSWORD", default=""),
-        "HOST": config("DB_HOST", default=""),
-        "PORT": config("DB_PORT", default=""),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
-
-DATABASES = default_db
 database_url = config("DATABASE_URL", default="")
 if database_url:
     parsed = urlparse(database_url)
-    db_engine = {
-        "postgres": "django.db.backends.postgresql",
-        "postgresql": "django.db.backends.postgresql",
-    }.get(parsed.scheme, "django.db.backends.postgresql")
     DATABASES["default"] = {
-        "ENGINE": db_engine,
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": unquote(parsed.path.lstrip("/")),
         "USER": unquote(parsed.username or ""),
         "PASSWORD": unquote(parsed.password or ""),
         "HOST": parsed.hostname or "",
         "PORT": str(parsed.port or ""),
         "CONN_MAX_AGE": 600,
-        "OPTIONS": {"sslmode": "require"} if not DEBUG else {},
+        "OPTIONS": {"sslmode": "require"},
     }
 
 AUTH_PASSWORD_VALIDATORS = [
