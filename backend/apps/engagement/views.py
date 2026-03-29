@@ -1,0 +1,14 @@
+from rest_framework import viewsets
+
+from apps.engagement.models import Notification
+from apps.engagement.serializers import NotificationSerializer
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
